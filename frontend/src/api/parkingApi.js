@@ -120,6 +120,84 @@ const parkingApi = {
     } catch (error) {
       return handleApiError(error, '处理视频帧');
     }
+  },
+
+  // 认证相关API
+  login: async (username, password) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        username,
+        password
+      });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '用户登录');
+    }
+  },
+
+  register: async (userData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, userData);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '用户注册');
+    }
+  },
+
+  // 会员管理API
+  getMembers: async (params) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/members`, { params });
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '获取会员列表');
+    }
+  },
+
+  getMemberById: async (id) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/members/${id}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '获取会员详情');
+    }
+  },
+
+  createMember: async (memberData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/members`, memberData);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '创建会员');
+    }
+  },
+
+  updateMember: async (id, memberData) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/members/${id}`, memberData);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '更新会员');
+    }
+  },
+
+  deleteMember: async (id) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/members/${id}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '删除会员');
+    }
+  },
+
+  // 停车记录详情API
+  getRecordById: async (id) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/records/${id}`);
+      return response.data;
+    } catch (error) {
+      return handleApiError(error, '获取停车记录详情');
+    }
   }
 };
 
