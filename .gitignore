@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# 日志
+logs/
+*.log
+
+# 数据库
+*.db
+*.sqlite3
+
+# 前端
+node_modules/
+/frontend/build
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
