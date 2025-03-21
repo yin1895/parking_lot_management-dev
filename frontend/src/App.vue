@@ -15,6 +15,15 @@
             <el-menu-item index="/management">管理</el-menu-item>
             <el-menu-item index="/about">关于</el-menu-item>
           </el-menu>
+          <div class="user-actions">
+            <template v-if="isAuthenticated">
+              <span class="welcome-msg">欢迎, {{ username }}</span>
+              <el-button size="small" type="danger" @click="handleLogout">登出</el-button>
+            </template>
+            <template v-else>
+              <el-button size="small" type="primary" @click="goToLogin">登录</el-button>
+            </template>
+          </div>
         </div>
       </el-header>
       <el-main>
@@ -28,6 +37,10 @@
 </template>
 
 <script>
+import { ElMessage } from 'element-plus';
+import { computed } from 'vue';
+import { useStore } from 'vuex';
+
 export default {
   name: 'App',
   data() {
@@ -35,12 +48,32 @@ export default {
       activeIndex: '/'
     };
   },
+  computed: {
+    isAuthenticated() {
+      return this.$store.getters.isAuthenticated;
+    },
+    username() {
+      return this.$store.getters.user?.username || '用户';
+    }
+  },
   mounted() {
     this.activeIndex = this.$route.path;
+    // 初始化时检查用户认证状态
+    this.$store.dispatch('checkAuth');
   },
   methods: {
     handleSelect(key) {
       this.activeIndex = key;
+    },
+    goToLogin() {
+      this.$router.push('/login');
+    },
+    handleLogout() {
+      this.$store.dispatch('logout');
+      ElMessage.success('已成功登出');
+      if (this.$route.meta.requiresAuth) {
+        this.$router.push('/');
+      }
     }
   },
   watch: {
@@ -75,6 +108,7 @@ export default {
 .nav-menu {
   background-color: transparent;
   border-bottom: none;
+  flex: 1; /* 让菜单占据中间区域 */
 }
 .el-menu--horizontal .el-menu-item {
   color: white;
@@ -92,5 +126,14 @@ export default {
   background-color: #f5f7fa;
   color: #606266;
   padding: 20px 0;
+}
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.welcome-msg {
+  color: white;
+  margin-right: 10px;
 }
 </style>
