@@ -21,7 +21,7 @@
         <router-view />
       </el-main>
       <el-footer>
-        &copy; 2023 停车场管理系统
+        &copy; 2025 停车场管理系统
       </el-footer>
     </el-container>
   </div>
