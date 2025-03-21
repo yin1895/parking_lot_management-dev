@@ -36,6 +36,7 @@
 ## 系统要求
 
 - Python 3.8+
+- MySQL 5.7+ (必需，用于数据存储)
 - OpenCV
 - Flask (后端API服务)
 - Vue (前端界面)
@@ -48,8 +49,8 @@
 
 ### 1. 克隆仓库
 ```bash     
-git clone https://github.com/yin1895/parking-management.git
-cd parking-management
+git clone https://github.com/yin1895/parking-management-dev.git
+cd parking-management-dev
 ```
 
 ### 2. 创建虚拟环境（推荐使用anaconda）
@@ -63,19 +64,44 @@ conda activate parking
 pip install -r requirements.txt
 ```
 
-### 4. 启动后端服务
+### 4. 安装并配置MySQL
 
-```bash
-# 在项目根目录下运行
-python backend/app.py
+- 下载并安装[MySQL](https://dev.mysql.com/downloads/mysql/)（5.7+版本）
+- 创建数据库：
+  ```sql
+  CREATE DATABASE parking_lot_management;
+  ```
+- 创建用户并授权：
+  ```sql
+  CREATE USER 'parking_user'@'localhost' IDENTIFIED BY 'your_password';
+  GRANT ALL PRIVILEGES ON parking_lot_management.* TO 'parking_user'@'localhost';
+  FLUSH PRIVILEGES;
+  ```
 
-# 或者使用项目主入口
-python main.py
+### 5. 配置环境变量
+
+必须在.env文件中配置以下参数：
+```
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=parking_lot_management
+DB_USER=parking_user
+DB_PASSWORD=your_password
+JWT_SECRET_KEY=your_secret_key
+PARKING_CAPACITY=100
 ```
 
-> **注意**: 请在项目根目录下运行后端服务，如果在backend目录内运行可能会遇到模块导入错误。
+### 6. 初始化数据库
+```bash
+python scripts/init_db.py
+```
 
-### 5. 启动前端应用
+### 7. 启动后端服务
+```bash
+python backend/app.py
+```
+
+### 8. 启动前端应用
 ```bash
 cd frontend
 npm install
@@ -87,10 +113,7 @@ npm start  # 或者使用 npm run serve
 ## 使用说明
 
 ### 基本操作
-1. 启动系统
-```bash
-python main.py
-```
+1. 确保后端服务和前端应用都已启动
 
 2. 车牌识别
 - 点击"开启摄像头"按钮启动识别
@@ -182,6 +205,38 @@ parking_management/
 - 界面刷新率
 - 其他系统参数
 
+## 测试
+
+### 运行自动化测试
+项目包含自动化测试脚本，可以验证系统的主要功能：
+
+```bash
+# 运行所有测试
+pytest
+
+# 运行特定测试模块
+pytest tests/test_parking_service.py
+```
+
+### 测试注意事项
+- 确保测试前已正确配置数据库
+- 部分测试会创建临时数据，测试完成后会自动清理
+- 如需保留测试数据，可使用 `--keep-data` 参数
+
+## 模型文件
+
+系统需要使用车牌识别模型文件，请将以下文件下载并放入 `backend/weights` 目录：
+- `plate_detect.onnx` - 用于车牌检测
+- `plate_rec_color.onnx` - 用于车牌字符和颜色识别
+
+模型文件可从项目发布页面下载，或联系维护者获取。
+
+## 性能优化建议
+
+- 配置合适的数据库连接池大小以应对高并发
+- 定期清理历史数据以提高查询性能
+- 对于大型停车场，建议增加服务器内存至8GB以上
+
 ## 常见问题
 
 1. 摄像头无法打开
@@ -213,6 +268,13 @@ parking_management/
 ## 贡献指南
 
 欢迎提交 Issue 和 Pull Request 来帮助改进项目。
+
+贡献步骤：
+1. Fork 项目仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'Add some amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
 
 ## 许可证
 
