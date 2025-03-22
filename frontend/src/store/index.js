@@ -5,12 +5,14 @@ export default createStore({
   state: {
     isAuthenticated: false,
     user: null,
-    token: localStorage.getItem('token') || null
+    token: localStorage.getItem('token') || null,
+    theme: localStorage.getItem('theme') || 'light' // 添加主题状态
   },
   getters: {
     isAuthenticated: state => state.isAuthenticated,
     user: state => state.user,
-    token: state => state.token
+    token: state => state.token,
+    theme: state => state.theme // 添加主题getter
   },
   mutations: {
     setAuth(state, auth) {
@@ -26,6 +28,11 @@ export default createStore({
       } else {
         localStorage.removeItem('token')
       }
+    },
+    setTheme(state, theme) {
+      state.theme = theme
+      localStorage.setItem('theme', theme)
+      document.documentElement.setAttribute('data-theme', theme)
     }
   },
   actions: {
@@ -60,6 +67,14 @@ export default createStore({
         commit('setAuth', true)
         // 这里可以添加验证token有效性的请求
       }
+    },
+    toggleTheme({ commit, state }) {
+      const newTheme = state.theme === 'light' ? 'dark' : 'light'
+      commit('setTheme', newTheme)
+    },
+    initTheme({ commit, state }) {
+      // 初始化主题
+      document.documentElement.setAttribute('data-theme', state.theme)
     }
   }
 })

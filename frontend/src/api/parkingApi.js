@@ -1,3 +1,4 @@
+import apiClient from '../utils/apiClient';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.VUE_APP_API_URL || 'http://localhost:5000/api';
@@ -197,6 +198,28 @@ const parkingApi = {
       return response.data;
     } catch (error) {
       return handleApiError(error, '获取停车记录详情');
+    }
+  },
+
+  // 获取今日统计数据
+  getTodayStats: async () => {
+    try {
+      const url = `${API_BASE_URL}/records/stats/today?_t=${Date.now()}`;
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      const fallbackResponse = {
+        success: false,
+        message: error.message || '获取今日统计数据失败',
+        stats: {
+          entries: 0,
+          exits: 0,
+          income: 0,
+          timestamp: Date.now()
+        }
+      };
+      console.error('获取今日统计数据失败:', error);
+      return fallbackResponse;
     }
   }
 };
