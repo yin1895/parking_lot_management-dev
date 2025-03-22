@@ -3,7 +3,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 import os
 import sys
-import bcrypt  # 改回使用bcrypt
+# 替换为 pbkdf2_sha256
+from passlib.hash import pbkdf2_sha256
 
 # 添加项目根目录到路径
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,8 +18,8 @@ from backend.models.parking_record import ParkingRecord
 def init_db():
     load_dotenv()
     
-    # 创建数据库连接URL
-    db_url = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+    # 创建数据库连接URL - 添加默认端口处理
+    db_url = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '3306') or os.getenv('MYSQL_PORT', '3306')}/{os.getenv('DB_NAME')}"
     
     # 创建数据库引擎
     engine = create_engine(db_url)
@@ -37,8 +38,8 @@ def init_db():
 def initialize_admin_user(session_maker):
     admin_username = "admin"
     admin_password = "admin"  # 默认密码
-    # 使用bcrypt哈希密码
-    hashed_password = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # 使用 pbkdf2_sha256 哈希密码
+    hashed_password = pbkdf2_sha256.hash(admin_password)
 
     # 创建会话
     session = session_maker()

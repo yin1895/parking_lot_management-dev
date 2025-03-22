@@ -15,9 +15,9 @@ pymysql>=1.0.2
 sqlalchemy>=1.4.23
 passlib>=1.7.4
 python-jose>=3.3.0
+# bcrypt 移除，不再需要
 
 # 开发工具
 pytest>=6.2.5
 black>=21.8b0
 flake8>=3.9.2
-bcrypt

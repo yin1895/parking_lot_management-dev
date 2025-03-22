@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from backend.models.user import User
 from backend.models import db_session
-from passlib.hash import bcrypt
+# 替换为 pbkdf2_sha256
+from passlib.hash import pbkdf2_sha256
 import datetime
 import jwt
 from backend.config.config import Config
@@ -25,8 +26,8 @@ def login():
         # 查询用户
         user = db_session.query(User).filter_by(username=username).first()
         
-        # 验证密码
-        if not user or not bcrypt.verify(password, user.password):
+        # 验证密码 - 使用 pbkdf2_sha256
+        if not user or not pbkdf2_sha256.verify(password, user.password):
             return jsonify({
                 'success': False,
                 'message': '用户名或密码错误'
@@ -80,8 +81,8 @@ def register():
                 'message': f'用户名 {username} 已存在'
             }), 400
             
-        # 创建新用户
-        hashed_password = bcrypt.hash(password)
+        # 创建新用户 - 使用 pbkdf2_sha256
+        hashed_password = pbkdf2_sha256.hash(password)
         user = User(
             username=username,
             password=hashed_password,
