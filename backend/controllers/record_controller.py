@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from backend.models.parking_record import ParkingRecord
 from backend.models import db_session
-from datetime import datetime
+from datetime import datetime, timedelta
 
 record_bp = Blueprint('records', __name__)
 
@@ -70,4 +70,69 @@ def get_record(record_id):
         return jsonify({
             'success': False,
             'message': f'获取停车记录失败: {str(e)}'
+        }), 500
+
+@record_bp.route('/stats/today', methods=['GET'])
+def get_today_stats():
+    """获取今日停车场统计数据"""
+    try:
+        # 使用UTC时区统一处理日期
+        from datetime import datetime, timedelta, timezone
+        
+        # 获取当前服务器时区的今天日期范围
+        local_tz = timezone(timedelta(hours=8))  # 假设服务器在东八区，根据实际情况调整
+        now = datetime.now(local_tz)
+        today_start = datetime(now.year, now.month, now.day, 0, 0, 0, tzinfo=local_tz)
+        tomorrow_start = today_start + timedelta(days=1)
+        
+        # 将时区信息转换为UTC进行数据库查询
+        today_start_utc = today_start.astimezone(timezone.utc).replace(tzinfo=None)
+        tomorrow_start_utc = tomorrow_start.astimezone(timezone.utc).replace(tzinfo=None)
+        
+        # 查询今日入场记录数
+        entries_query = db_session.query(ParkingRecord).filter(
+            ParkingRecord.entry_time >= today_start_utc,
+            ParkingRecord.entry_time < tomorrow_start_utc
+        )
+        entries_count = entries_query.count()
+        
+        # 查询今日出场记录数
+        exits_query = db_session.query(ParkingRecord).filter(
+            ParkingRecord.exit_time >= today_start_utc,
+            ParkingRecord.exit_time < tomorrow_start_utc
+        )
+        exits_count = exits_query.count()
+        
+        # 计算今日收入
+        income_records = exits_query.all()
+        total_income = sum(record.parking_fee or 0 for record in income_records)
+        
+        # 打印详细日志以便调试
+        print(f"统计时间范围: {today_start_utc} 至 {tomorrow_start_utc}")
+        print(f"今日入场: {entries_count}, 出场: {exits_count}, 收入: {total_income}")
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'entries': entries_count,
+                'exits': exits_count,
+                'income': round(total_income, 2),
+                # 添加查询时间戳，前端可用来验证数据新鲜度
+                'timestamp': datetime.now().timestamp()
+            }
+        })
+    except Exception as e:
+        import traceback
+        print(f"获取今日统计数据异常: {str(e)}")
+        print(traceback.format_exc())
+        
+        return jsonify({
+            'success': False,
+            'message': f'获取统计数据失败: {str(e)}',
+            'stats': {
+                'entries': 0,
+                'exits': 0,
+                'income': 0,
+                'timestamp': datetime.now().timestamp()
+            }
         }), 500

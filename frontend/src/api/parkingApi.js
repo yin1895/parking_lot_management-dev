@@ -1,3 +1,4 @@
+import apiClient from '../utils/apiClient';
 import axios from 'axios';
 
 const API_BASE_URL = process.env.VUE_APP_API_URL || 'http://localhost:5000/api';
@@ -197,6 +198,58 @@ const parkingApi = {
       return response.data;
     } catch (error) {
       return handleApiError(error, '获取停车记录详情');
+    }
+  },
+
+  // 获取今日统计数据
+  getTodayStats: async () => {
+    try {
+      const url = `${API_BASE_URL}/records/stats/today?_t=${Date.now()}`;
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      const fallbackResponse = {
+        success: false,
+        message: error.message || '获取今日统计数据失败',
+        stats: {
+          entries: 0,
+          exits: 0,
+          income: 0,
+          timestamp: Date.now()
+        }
+      };
+      console.error('获取今日统计数据失败:', error);
+      return fallbackResponse;
+    }
+  },
+  
+  // 检查摄像头支持情况
+  checkCameraSupport: () => {
+    try {
+      // 检查mediaDevices API是否可用
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return {
+          supported: false,
+          message: '您的浏览器不支持摄像头访问功能，建议使用Chrome、Firefox或Edge浏览器的最新版本。'
+        };
+      }
+      
+      // 检查是否在安全上下文中运行
+      if (
+          window.location.hostname !== 'localhost' && 
+          window.location.hostname !== '127.0.0.1') {
+        return {
+          supported: false,
+          message: '摄像头访问需要在安全环境(HTTPS)下运行，请使用HTTPS访问本站。'
+        };
+      }
+      
+      return { supported: true };
+    } catch (error) {
+      return {
+        supported: false,
+        message: `摄像头支持检查失败: ${error.message}`
+      };
     }
   }
 };
