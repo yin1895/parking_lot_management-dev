@@ -104,10 +104,11 @@
 </template>
 
 <script>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import parkingApi from '@/api/parkingApi'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { throttle } from '@/utils/debounce'
 
 export default {
   name: 'DashboardComponent',
@@ -202,30 +203,33 @@ export default {
       }
     }
     
+    // 使用节流函数优化loadData调用
+    const throttledLoadData = throttle(loadData, 5000, true);
+    
     // 监听父组件的刷新触发
     watch(() => props.refreshTrigger, () => {
       console.log('收到刷新触发信号，重新加载数据')
-      loadData(true)
+      throttledLoadData(true)
     })
     
     // 建立定时刷新
     let refreshInterval = null
     
     onMounted(() => {
-      loadData()
+      throttledLoadData()
       
       // 每30秒自动刷新一次数据
       refreshInterval = setInterval(() => {
-        loadData()
+        throttledLoadData()
       }, 30000)
     })
     
     // 组件卸载时清除定时器
-    const beforeUnmount = () => {
+    onBeforeUnmount(() => {
       if (refreshInterval) {
         clearInterval(refreshInterval)
       }
-    }
+    })
     
     return {
       parkingStatus,
@@ -233,9 +237,8 @@ export default {
       isLoading,
       lastUpdate,
       getOccupancyColor,
-      loadData,
-      Refresh,
-      beforeUnmount
+      loadData: throttledLoadData,
+      Refresh
     }
   }
 }
