@@ -13,7 +13,7 @@ class PlateRecognizer:
         self.last_recognized_plate = None
         self.confidence_threshold = 0.5
         
-        # 从官方移植的参数
+        # 移植的参数
         self.plate_color_list = ['黑色', '蓝色', '绿色', '白色', '黄色']
         self.plateName = r"#京沪津渝冀晋蒙辽吉黑苏浙皖闽赣鲁豫鄂湘粤桂琼川贵云藏陕甘青宁新学警港澳挂使领民航危0123456789ABCDEFGHJKLMNPQRSTUVWXYZ险品"
         self.mean_value, self.std_value = (0.588, 0.193)  # 识别模型均值标准差
@@ -23,7 +23,7 @@ class PlateRecognizer:
         return {i: char for i, char in enumerate(self.plateName)}
 
     def my_letter_box(self, img, size=(640, 640)):
-        """官方提供的图像预处理方法"""
+        """图像预处理方法"""
         h, w, c = img.shape
         r = min(size[0] / h, size[1] / w)
         new_h, new_w = int(h * r), int(w * r)
@@ -36,7 +36,7 @@ class PlateRecognizer:
         return img, r, left, top
 
     def preprocess_image(self, image):
-        """官方提供的图像预处理方法"""
+        """图像预处理方法"""
         img, r, left, top = self.my_letter_box(image, (640, 640))
         img = img[:, :, ::-1].transpose(2, 0, 1).copy().astype(np.float32)
         img = img / 255
@@ -51,7 +51,7 @@ class PlateRecognizer:
         return outputs
 
     def post_processing(self, dets, r, left, top, conf_thresh=0.3, iou_thresh=0.5):
-        """官方提供的后处理方法"""
+        """后处理方法"""
         choice = dets[:, :, 4] > conf_thresh
         dets = dets[choice]
         dets[:, 13:15] *= dets[:, 4:5]
@@ -66,7 +66,7 @@ class PlateRecognizer:
         return output
 
     def xywh2xyxy(self, boxes):
-        """官方提供的坐标转换方法"""
+        """坐标转换方法"""
         xywh = copy.deepcopy(boxes)
         xywh[:, 0] = boxes[:, 0] - boxes[:, 2] / 2
         xywh[:, 1] = boxes[:, 1] - boxes[:, 3] / 2
@@ -75,7 +75,7 @@ class PlateRecognizer:
         return xywh
 
     def my_nms(self, boxes, iou_thresh):
-        """官方提供的非极大值抑制方法"""
+        """非极大值抑制方法"""
         index = np.argsort(boxes[:, 4])[::-1]
         keep = []
         while index.size > 0:
@@ -95,7 +95,7 @@ class PlateRecognizer:
         return keep
 
     def restore_box(self, boxes, r, left, top):
-        """官方提供的盒子坐标恢复方法"""
+        """盒子坐标恢复方法"""
         boxes[:, [0, 2, 5, 7, 9, 11]] -= left
         boxes[:, [1, 3, 6, 8, 10, 12]] -= top
         boxes[:, [0, 2, 5, 7, 9, 11]] /= r
@@ -103,7 +103,7 @@ class PlateRecognizer:
         return boxes
 
     def rec_pre_processing(self, img, size=(48, 168)):
-        """官方提供的车牌识别预处理方法"""
+        """车牌识别预处理方法"""
         img = cv2.resize(img, (168, 48))
         img = img.astype(np.float32)
         img = (img / 255 - self.mean_value) / self.std_value
@@ -112,7 +112,7 @@ class PlateRecognizer:
         return img
 
     def decode_plate(self, preds):
-        """官方提供的车牌解码方法"""
+        """车牌解码方法"""
         pre = 0
         new_preds = []
         for i in range(len(preds)):
@@ -125,7 +125,7 @@ class PlateRecognizer:
         return plate
 
     def recognize_text(self, plate_img):
-        """识别车牌文字和颜色 - 使用官方方法"""
+        """识别车牌文字和颜色 """
         img = self.rec_pre_processing(plate_img)
         y_onnx_plate, y_onnx_color = recog_session.run(
             [recog_session.get_outputs()[0].name, recog_session.get_outputs()[1].name], 
