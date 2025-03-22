@@ -47,7 +47,8 @@
 
 <script>
 import axios from 'axios';
-import { throttle } from '@/utils/debounce'; // 导入节流函数
+import parkingApi from '@/api/parkingApi';
+import { throttle } from 'lodash';
 
 export default {
   name: 'RealtimePlateRecognition',
@@ -85,6 +86,15 @@ export default {
     },
     
     async startCamera() {
+      // 首先检查摄像头支持
+      const cameraSupport = parkingApi.checkCameraSupport();
+      
+      if (!cameraSupport.supported) {
+        this.errorMessage = cameraSupport.message;
+        console.error('摄像头支持问题:', cameraSupport.message);
+        return;
+      }
+      
       try {
         const constraints = {
           video: {
@@ -93,11 +103,41 @@ export default {
           }
         };
         
+        // 确保mediaDevices存在并提供polyfill
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          // 使用旧的API (摄像头支持检查已处理这种情况，但为了更健壮添加额外检查)
+          const getUserMedia = navigator.getUserMedia ||
+                            navigator.webkitGetUserMedia ||
+                            navigator.mozGetUserMedia ||
+                            navigator.msGetUserMedia;
+                            
+          if (getUserMedia) {
+            // 使用回调形式的旧API
+            getUserMedia.call(
+              navigator, 
+              constraints, 
+              (stream) => {
+                this.$refs.videoElement.srcObject = stream;
+                this.stream = stream;
+                this.isCameraActive = true;
+              },
+              (error) => {
+                this.errorMessage = `无法访问摄像头: ${error.message || '未知错误'}`;
+                console.error('摄像头访问错误:', error);
+              }
+            );
+            return;
+          } else {
+            throw new Error('浏览器不支持摄像头访问');
+          }
+        }
+        
+        // 使用现代API
         this.stream = await navigator.mediaDevices.getUserMedia(constraints);
         this.$refs.videoElement.srcObject = this.stream;
         this.isCameraActive = true;
       } catch (error) {
-        this.errorMessage = `无法访问摄像头: ${error.message}`;
+        this.errorMessage = `无法访问摄像头: ${error.message || '未知错误'}`;
         console.error('摄像头访问错误:', error);
       }
     },
@@ -207,11 +247,9 @@ export default {
       this.processingFrame = true;
       
       try {
-        const response = await axios.post(`${this.API_URL}/auto-parking/process-frame`, {
-          frame_data: frameData
-        });
-        
-        const data = response.data;
+        // 使用parkingApi而不是直接使用axios
+        const result = await parkingApi.processVideoFrame(frameData);
+        const data = result;
         
         // 处理识别结果
         if (data.success) {

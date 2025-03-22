@@ -221,6 +221,36 @@ const parkingApi = {
       console.error('获取今日统计数据失败:', error);
       return fallbackResponse;
     }
+  },
+  
+  // 检查摄像头支持情况
+  checkCameraSupport: () => {
+    try {
+      // 检查mediaDevices API是否可用
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return {
+          supported: false,
+          message: '您的浏览器不支持摄像头访问功能，建议使用Chrome、Firefox或Edge浏览器的最新版本。'
+        };
+      }
+      
+      // 检查是否在安全上下文中运行
+      if (
+          window.location.hostname !== 'localhost' && 
+          window.location.hostname !== '127.0.0.1') {
+        return {
+          supported: false,
+          message: '摄像头访问需要在安全环境(HTTPS)下运行，请使用HTTPS访问本站。'
+        };
+      }
+      
+      return { supported: true };
+    } catch (error) {
+      return {
+        supported: false,
+        message: `摄像头支持检查失败: ${error.message}`
+      };
+    }
   }
 };
 
