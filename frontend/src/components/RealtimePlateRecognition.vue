@@ -48,7 +48,8 @@
 <script>
 import axios from 'axios';
 import parkingApi from '@/api/parkingApi';
-import { throttle } from 'lodash';
+// 使用项目自身的节流函数替代lodash，保持一致性
+import { throttle } from '@/utils/debounce';
 
 export default {
   name: 'RealtimePlateRecognition',
@@ -70,7 +71,7 @@ export default {
     };
   },
   created() {
-    // 使用节流函数包装sendFrameToBackend方法
+    // 使用项目内部的throttle函数
     this.throttledSendFrame = throttle(this.sendFrameToBackend, 500);
     
     // 添加requestAnimationFrame优化
@@ -181,13 +182,10 @@ export default {
       this.isRecognizing = false;
     },
     
+    // 优化captureAndProcessFrame函数，防止在处理中触发新的布局计算
     captureAndProcessFrame() {
-      // 如果正在处理上一帧，则将当前帧添加到队列
+      // 如果正在处理上一帧，则跳过当前帧，不添加到队列
       if (this.processingFrame) {
-        // 限制队列长度，避免内存问题
-        if (this.frameProcessQueue.length < 3) {
-          this.queueFrame();
-        }
         return;
       }
       
@@ -200,9 +198,11 @@ export default {
       // 使用requestAnimationFrame优化渲染
       cancelAnimationFrame(this.rafId);
       this.rafId = requestAnimationFrame(() => {
-        // 设置canvas尺寸与视频匹配
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // 设置canvas尺寸与视频匹配 - 仅当尺寸变化时才更新
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
         
         // 将视频帧绘制到canvas
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -286,9 +286,15 @@ export default {
       }
     },
     
-    // 新增方法用于启动定时捕获
+    // 优化startIntervalCapture方法，使用更合理的间隔
     startIntervalCapture() {
-      const frameInterval = 1000 / this.recognitionFrameRate;
+      // 确保清除旧的定时器
+      if (this.recognitionInterval) {
+        clearInterval(this.recognitionInterval);
+      }
+      
+      // 使用更保守的帧率，减少渲染压力
+      const frameInterval = Math.max(500, 1000 / this.recognitionFrameRate);
       this.recognitionInterval = setInterval(() => {
         this.captureAndProcessFrame();
       }, frameInterval);
