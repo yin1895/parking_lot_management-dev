@@ -1,7 +1,10 @@
 import apiClient from '../utils/apiClient';
 import axios from 'axios';
 
+// 在Docker环境中，前端容器需要通过服务名而非localhost访问后端
+// 添加调试信息以便排查问题
 const API_BASE_URL = process.env.VUE_APP_API_URL || 'http://localhost:5000/api';
+console.log('API基础URL:', API_BASE_URL);
 
 /**
  * 统一处理API错误

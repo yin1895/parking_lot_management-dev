@@ -33,40 +33,38 @@
   - 支持手动输入和自动识别
   - 管理员控制面板
 
-## 系统要求
+## 部署方式
+
+系统提供两种部署方式，请根据需求选择：
+
+### 方式一：手动部署
+
+#### 系统要求
 
 - Python 3.8+
-- MySQL 5.7+ (必需，用于数据存储)
-- OpenCV
-- Flask (后端API服务)
-- Vue (前端界面)
-- SQLAlchemy (数据库ORM)
-- ONNX Runtime
-- Pandas
-- 其他依赖见 requirements.txt
+- MySQL 5.7+ 
+- Node.js 和 npm (前端部署)
 
-## 安装与启动
+#### 部署步骤
 
-### 1. 克隆仓库
+1. **克隆仓库**
 ```bash     
 git clone https://github.com/yin1895/parking-management-dev.git
 cd parking-management-dev
 ```
 
-### 2. 创建虚拟环境（推荐使用anaconda）
+2. **创建虚拟环境**
 ```bash
 conda create -n parking python=3.8
 conda activate parking
 ```
 
-### 3. 安装依赖
+3. **安装依赖**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. 安装并配置MySQL
-
-- 下载并安装[MySQL](https://dev.mysql.com/downloads/mysql/)（5.7+版本）
+4. **安装并配置MySQL**
 - 创建数据库：
   ```sql
   CREATE DATABASE parking_lot_management;
@@ -78,87 +76,107 @@ pip install -r requirements.txt
   FLUSH PRIVILEGES;
   ```
 
-### 5. 配置环境变量
+5. **配置环境变量**
+- 复制环境变量示例文件:
+  ```bash
+  cp .env.example .env
+  ```
+- 或者根据实际情况修改.env文件中的配置:
+  ```
+  DB_HOST=localhost
+  DB_PORT=3306
+  DB_NAME=parking_lot_management
+  DB_USER=parking_user
+  DB_PASSWORD=your_password
+  JWT_SECRET_KEY=your_secret_key
+  PARKING_CAPACITY=100
+  ```
 
-必须在.env文件中配置以下参数：
-```
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=parking_lot_management
-DB_USER=parking_user
-DB_PASSWORD=your_password
-JWT_SECRET_KEY=your_secret_key
-PARKING_CAPACITY=100
-```
-
-### 6. 初始化数据库
+6. **初始化数据库**
 ```bash
 python scripts/init_db.py
 ```
 
-### 7. 启动后端服务
+7. **启动项目**
 ```bash
-python backend/app.py
+run.bat
 ```
-
-### 8. 启动前端应用
+或分别启动前后端：
 ```bash
+# 启动后端
+python backend/app.py
+
+# 启动前端
 cd frontend
 npm install
-npm start  # 或者使用 npm run serve
+npm start
 ```
 
-> **注意**：如果 npm install 显示依赖项存在安全漏洞，可以运行 `npm run audit-fix` 尝试修复。对于无法自动修复的问题，可能需要手动更新特定依赖或等待依赖项更新。请谨慎使用 `npm audit fix --force`，因为它可能破坏应用功能。
+### 方式二：Docker部署
 
-## 使用说明
+#### 系统要求
 
-### 基本操作
-1. 确保后端服务和前端应用都已启动
+- Docker
+- Docker Compose
 
-2. 车牌识别
-- 点击"开启摄像头"按钮启动识别
-- 系统将在5秒内进行连续识别
-- 自动选择最佳识别结果
+#### 部署步骤
 
-3. 车辆管理
-- 车辆入场：输入车牌号或使用识别结果，点击"车辆入场"
-- 车辆出场：输入车牌号或使用识别结果，点击"车辆出场"
-- 系统自动记录时间并计算费用
+1. **克隆仓库**
+```bash     
+git clone https://github.com/yin1895/parking-management-dev.git
+cd parking-management-dev
+```
 
-### 管理员功能
-1. 登录管理界面
-- 点击"管理员入口"
-- 默认账号：admin
-- 默认密码：1234
+2. **使用Docker Compose部署**
+- 作者的docker username是yinth,如果你使用one-click-deploy.bat快捷脚本可能会用到，这个脚本是提供给不熟悉docker的用户使用的，如果你对docker有所了解，可以使用下面命令
+```bash
+docker-compose -f docker-compose.hub.yml up -d
+```
+- 注意后端启动后会等待20秒以便数据库彻底启动，这个过程前端是链接不到后端的哦
+
+3. **访问系统**
+- 前端界面: http://localhost:8080
+- 后端API: http://localhost:5001
+
+4. **故障排除**
+- 如果Docker部署后遇到服务间通信问题(如前端无法连接后端，或后端无法连接数据库)，可以运行检查脚本:
+```bash
+./check_docker_connectivity.sh
+```
+- 该脚本会检查容器网络、端口映射和服务状态，并提供修复建议
+- 常见问题包括:
+  - 防火墙阻止容器通信
+  - 端口冲突(如3307或8080端口已被占用)
+  - Docker网络配置不正确
+
+- 在docker中数据库我已经默认使用root，因为懒得设置用户和权限，有需要的自己搞QWQ
+
+5. **停止服务**
+```bash
+docker-compose -f docker-compose.hub.yml down
+```
 
 ## 默认管理员账号
 
 - 用户名：`admin`
-- 密码：`admin` <!-- 确保与初始化脚本一致 -->
+- 密码：`admin`
+
+## 使用说明
+
+1. 停车场管理
+   - 车辆入场：记录车牌和入场时间
+   - 车辆出场：计算停车费用并记录
+   - 查看车位状态
 
 2. 会员管理
-- 添加/删除会员
-- 查看会员列表
-- 设置会员价格
+   - 添加/删除会员
+   - 查看会员列表
+   - 设置会员价格
 
 3. 历史记录查询
-- 按日期范围查询
-- 按车牌号筛选
-- 查看详细停车记录
-
-## 架构说明
-
-本系统采用前后端分离架构:
-
-### 后端 (Backend)
-- RESTful API服务
-- 车牌识别核心算法
-- 数据库管理
-- 业务逻辑处理
-
-### 前端 (Frontend)
-- Web界面 (Vue + Element Plus)
-- 通过API与后端通信
+   - 按日期范围查询
+   - 按车牌号筛选
+   - 查看详细停车记录
 
 ## API文档
 
@@ -178,108 +196,6 @@ npm start  # 或者使用 npm run serve
 | /api/recognition/plate | POST   | 上传图片识别车牌     |
 
 详细API文档见 `/docs/api.md`
-
-## 项目结构
-
-```
-parking_management/
-├── backend/           # 后端API服务
-│   ├── app.py         # Flask后端入口点
-│   ├── config/        # 配置文件
-│   ├── models/        # 数据库模型
-│   ├── controllers/   # API控制器
-│   ├── services/      # 业务服务
-│   ├── utils/         # 工具函数
-│   └── recognition/   # 车牌识别模块
-├── frontend/          # 前端Web应用
-│   ├── public/        # 静态资源
-│   ├── src/           # 源代码
-│   ├── package.json   # 依赖配置
-│   └── README.md      # 前端说明
-├── docs/              # 文档
-│   └── api.md         # API文档
-├── weights/           # 模型文件
-└── requirements.txt   # 项目依赖
-```
-
-## 配置说明
-
-系统配置文件位于 `data/config.json`，可以修改以下参数：
-- 停车场容量
-- 计费标准（普通/会员）
-- 界面刷新率
-- 其他系统参数
-
-## 测试
-
-### 运行自动化测试
-项目包含自动化测试脚本，可以验证系统的主要功能：
-
-```bash
-# 运行所有测试
-pytest
-
-# 运行特定测试模块
-pytest tests/test_parking_service.py
-```
-
-### 测试注意事项
-- 确保测试前已正确配置数据库
-- 部分测试会创建临时数据，测试完成后会自动清理
-- 如需保留测试数据，可使用 `--keep-data` 参数
-
-## 模型文件
-
-系统需要使用车牌识别模型文件，请将以下文件下载并放入 `backend/weights` 目录：
-- `plate_detect.onnx` - 用于车牌检测
-- `plate_rec_color.onnx` - 用于车牌字符和颜色识别
-
-模型文件可从项目发布页面下载，或联系维护者获取。
-
-## 性能优化建议
-
-- 配置合适的数据库连接池大小以应对高并发
-- 定期清理历史数据以提高查询性能
-- 对于大型停车场，建议增加服务器内存至8GB以上
-
-## 常见问题
-
-1. 摄像头无法打开
-   - 检查摄像头连接
-   - 确认摄像头未被其他程序占用
-   - 检查摄像头驱动是否正确安装
-   - 请检查摄像头物理开关是否打开
-
-2. 车牌识别不准确
-   - 确保光线充足
-   - 调整摄像头角度
-   - 确保车牌在画面中清晰可见
-
-3. 管理员登录问题
-   - 确认使用默认账号密码
-   - 检查输入是否正确
-   - 注意大小写
-
-## 开发计划
-
-- [x] 添加会员管理功能
-- [x] 实现分段计费系统
-- [x] 添加历史记录查询
-- [ ] 添加数据统计和报表功能
-- [ ] 优化车牌识别准确率
-- [ ] 添加更多用户权限管理
-- [ ] 支持多摄像头接入
-
-## 贡献指南
-
-欢迎提交 Issue 和 Pull Request 来帮助改进项目。
-
-贡献步骤：
-1. Fork 项目仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 创建 Pull Request
 
 ## 许可证
 
