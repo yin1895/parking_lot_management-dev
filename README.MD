@@ -132,7 +132,12 @@ cd parking-management-dev
 ```bash
 docker-compose -f docker-compose.hub.yml up -d
 ```
-- 注意后端启动后会等待20秒以便数据库彻底启动，这个过程前端是链接不到后端的哦
+
+-当然，你也可以使用下面的命令进行docker部署,但是需要手动将docer-compose.hub.yml文件重命名为docker-compose.yml
+```bash
+docker-compose up -d
+```
+- 注意后端启动后会等待20秒以便数据库彻底启动，这个过程前端是链接不到后端的,或者会出现sql访问错误问题哦
 
 3. **访问系统**
 - 前端界面: http://localhost:8080
