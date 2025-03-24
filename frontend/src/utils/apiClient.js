@@ -8,6 +8,9 @@ export const createApiRequest = async (method, url, data = null, config = {}, re
   try {
     let response;
     
+    // 记录请求信息以便调试
+    console.log(`发起请求: ${method.toUpperCase()} ${url}`);
+    
     if (method.toLowerCase() === 'get') {
       response = await axios.get(url, {
         ...config,
@@ -28,6 +31,13 @@ export const createApiRequest = async (method, url, data = null, config = {}, re
     
     return response.data;
   } catch (error) {
+    // 增强错误日志，记录网络详情
+    console.error(`请求失败: ${method.toUpperCase()} ${url}`, {
+      status: error.response?.status,
+      message: error.message,
+      networkError: !error.response
+    });
+    
     // 检查是否应该重试
     if (retries < MAX_RETRIES && isRetryableError(error)) {
       console.warn(`请求失败，尝试重试 (${retries + 1}/${MAX_RETRIES}): ${url}`);

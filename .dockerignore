@@ -1,0 +1,29 @@
+# Git
+.git
+.gitignore
+
+# 开发环境文件
+.vscode
+.idea
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+node_modules/
+
+# 日志文件
+logs/
+*.log
+
+# 数据库
+*.db
+*.sqlite3
+
+# 其他
+.DS_Store
+*.swp
+*.swo

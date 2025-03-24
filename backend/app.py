@@ -17,12 +17,21 @@ from backend.controllers.auto_parking_controller import auto_parking_bp
 import logging
 
 app = Flask(__name__)
-CORS(app)
+# 为Docker环境配置更宽松的CORS策略
+CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
 app.config.from_object(Config)
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# 记录环境和连接信息
+logger.info(f"环境变量: FLASK_ENV={os.getenv('FLASK_ENV', '未设置')}")
+logger.info(f"环境变量: BACKEND_PORT={os.getenv('BACKEND_PORT', '未设置')}")
+logger.info(f"环境变量: PORT={os.getenv('PORT', '未设置')}")
+logger.info(f"使用端口: {Config.PORT}")
+logger.info(f"数据库主机: {Config.DB_HOST}")
+logger.info(f"数据库名称: {Config.DB_NAME}")
 
 # 注册蓝图
 app.register_blueprint(parking_bp, url_prefix='/api/parking')
@@ -57,11 +66,17 @@ def status():
     except Exception as e:
         db_status = f"disconnected: {str(e)}"
     
+    # 增强状态响应，包含更多环境信息
     return jsonify({
         'status': 'running',
         'database': db_status,
-        'version': '1.0.0'
+        'version': '1.0.0',
+        'env': os.getenv('FLASK_ENV', 'production'),
+        'api_url': request.host_url + 'api',
+        'db_host': Config.DB_HOST,
+        'port': Config.PORT
     })
 
 if __name__ == '__main__':
+    logger.info(f"服务器启动在 http://0.0.0.0:{Config.PORT}")
     app.run(host='0.0.0.0', port=Config.PORT)

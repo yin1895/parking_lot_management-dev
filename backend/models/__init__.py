@@ -12,7 +12,7 @@ load_dotenv()
 db = SQLAlchemy()
 
 # 创建数据库连接URL
-db_url = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+db_url = f"mysql+pymysql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', '3306') or os.getenv('MYSQL_PORT', '3306')}/{os.getenv('DB_NAME')}"
 
 # 创建引擎
 engine = create_engine(db_url)
