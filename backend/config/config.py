@@ -6,7 +6,7 @@ load_dotenv()
 
 class Config:
     # 基础配置
-    SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-key')
+    SECRET_KEY = os.getenv('JWT_SECRET_KEY', '*$Qnx}xJQaa*j^P3-[i^>#82MOALIO-<|g8YI-JC6dw*Q&>Y)|2sORbQ!7P&N7mq')
     DEBUG = os.getenv('FLASK_DEBUG', '0') == '1'
     # 在Docker环境中固定使用5000端口（容器内部端口）
     IS_DOCKER = os.getenv('IS_DOCKER', '0') == '1'
@@ -29,7 +29,6 @@ class Config:
     SQLALCHEMY_ECHO = DEBUG
     
     # JWT配置
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev-key')
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400))
     
     # 停车场配置
@@ -47,3 +46,22 @@ class Config:
     # 识别配置
     RECOGNITION_CONFIDENCE_THRESHOLD = 0.5
     RECOGNITION_MAX_RETRY = 3
+    
+    # CORS配置 - 安全加固
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080').split(',')
+    CORS_ALLOW_CREDENTIALS = True
+    
+    @property
+    def JWT_SECRET_KEY(self):
+        """获取JWT密钥，保持向后兼容"""
+        return self.SECRET_KEY
+    
+    @classmethod
+    def get_cors_config(cls):
+        """获取CORS配置"""
+        return {
+            'origins': cls.CORS_ORIGINS,
+            'methods': ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            'allow_headers': ['Content-Type', 'Authorization', 'X-Requested-With'],
+            'supports_credentials': cls.CORS_ALLOW_CREDENTIALS
+        }

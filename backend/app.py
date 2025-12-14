@@ -17,8 +17,11 @@ from backend.controllers.auto_parking_controller import auto_parking_bp
 import logging
 
 app = Flask(__name__)
-# 为Docker环境配置更宽松的CORS策略
-CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
+
+# 安全CORS配置 - 替换宽松的默认配置
+cors_config = Config.get_cors_config()
+CORS(app, resources={r"/api/*": cors_config})
+
 app.config.from_object(Config)
 
 # 配置日志
@@ -32,6 +35,7 @@ logger.info(f"环境变量: PORT={os.getenv('PORT', '未设置')}")
 logger.info(f"使用端口: {Config.PORT}")
 logger.info(f"数据库主机: {Config.DB_HOST}")
 logger.info(f"数据库名称: {Config.DB_NAME}")
+logger.info(f"CORS允许的来源: {Config.CORS_ORIGINS}")
 
 # 注册蓝图
 app.register_blueprint(parking_bp, url_prefix='/api/parking')
@@ -74,7 +78,8 @@ def status():
         'env': os.getenv('FLASK_ENV', 'production'),
         'api_url': request.host_url + 'api',
         'db_host': Config.DB_HOST,
-        'port': Config.PORT
+        'port': Config.PORT,
+        'cors_origins': Config.CORS_ORIGINS
     })
 
 if __name__ == '__main__':
