@@ -3,28 +3,36 @@ from backend.models.parking_record import ParkingRecord
 from backend.models.member import Member
 from backend.services.fee_calculator import FeeCalculator
 from backend.models import db_session
+from backend.utils.error_handler import DatabaseError, NotFoundError, ConflictError
+from backend.utils.validators import ParkingValidator
 
 class ParkingService:
     def __init__(self):
         self.fee_calculator = FeeCalculator()
         
     def record_entry(self, plate_number, plate_color='蓝色'):
-        """记录车辆入场"""
+        """记录车辆入场 - 优化版本"""
         try:
-            # 检查车辆是否已在场内
-            existing_record = ParkingRecord.get_active_by_plate(plate_number)
+            # 验证输入数据
+            validated_data = ParkingValidator.validate_entry_data({
+                'plate_number': plate_number,
+                'plate_color': plate_color
+            })
+            
+            # 检查车辆是否已在场内 - 使用优化查询
+            existing_record = ParkingRecord.get_active_by_plate(validated_data['plate_number'])
             if existing_record:
                 return {
                     'success': False,
-                    'message': f'车辆 {plate_number} 已在停车场内',
+                    'message': f'车辆 {validated_data["plate_number"]} 已在停车场内',
                     'record': existing_record.to_dict()
                 }
             
             # 创建新记录
             entry_time = datetime.now()
             record = ParkingRecord(
-                plate_number=plate_number,
-                plate_color=plate_color,
+                plate_number=validated_data['plate_number'],
+                plate_color=validated_data['plate_color'],
                 entry_time=entry_time
             )
             
@@ -33,33 +41,29 @@ class ParkingService:
             
             return {
                 'success': True,
-                'message': f'车辆 {plate_number} 成功入场',
+                'message': f'车辆 {validated_data["plate_number"]} 成功入场',
                 'record': record.to_dict()
             }
         except Exception as e:
             db_session.rollback()
-            return {
-                'success': False,
-                'message': f'记录入场失败: {str(e)}'
-            }
+            raise DatabaseError(f'记录入场失败: {str(e)}')
     
     def record_exit(self, plate_number):
-        """记录车辆出场并计算费用"""
+        """记录车辆出场并计算费用 - 优化版本"""
         try:
-            # 获取车辆入场记录
-            record = ParkingRecord.get_active_by_plate(plate_number)
+            # 验证输入数据
+            validated_data = ParkingValidator.validate_exit_data({
+                'plate_number': plate_number
+            })
+            
+            # 获取车辆入场记录和会员信息 - 使用优化查询
+            record, member = ParkingRecord.get_active_with_member_info(validated_data['plate_number'])
             if not record:
-                return {
-                    'success': False,
-                    'message': f'未找到车辆 {plate_number} 的入场记录'
-                }
+                raise NotFoundError(f'未找到车辆 {validated_data["plate_number"]} 的入场记录')
             
             # 更新出场时间
             exit_time = datetime.now()
             record.exit_time = exit_time
-            
-            # 检查是否是会员
-            member = Member.get_by_plate(plate_number)
             
             # 计算费用
             fee_details = self.fee_calculator.calculate(
@@ -74,23 +78,23 @@ class ParkingService:
             
             return {
                 'success': True,
-                'message': f'车辆 {plate_number} 成功出场',
+                'message': f'车辆 {validated_data["plate_number"]} 成功出场',
                 'record': record.to_dict(),
                 'fee_details': fee_details
             }
         except Exception as e:
-            return {
-                'success': False,
-                'message': f'记录出场失败: {str(e)}'
-            }
+            if isinstance(e, (DatabaseError, NotFoundError, ConflictError)):
+                raise
+            raise DatabaseError(f'记录出场失败: {str(e)}')
     
     def get_status(self):
-        """获取停车场状态"""
+        """获取停车场状态 - 优化版本"""
         try:
-            # 获取当前在场车辆数量
+            # 使用优化查询获取当前在场车辆数量
             active_vehicles = ParkingRecord.count_active()
-            # 假设总车位为100
-            total_spaces = 100
+            # 假设总车位为100，可以从配置中读取
+            from backend.config.config import Config
+            total_spaces = Config.PARKING_CAPACITY
             available_spaces = total_spaces - active_vehicles
             
             return {
@@ -101,7 +105,40 @@ class ParkingService:
                 'occupancy_rate': (active_vehicles / total_spaces) * 100
             }
         except Exception as e:
+            raise DatabaseError(f'获取停车场状态失败: {str(e)}')
+    
+    def get_parking_records(self, page=1, per_page=20, plate_number=None, start_date=None, end_date=None):
+        """分页获取停车记录 - 优化版本"""
+        try:
+            records, total = ParkingRecord.get_parking_records_with_pagination(
+                page=page,
+                per_page=per_page,
+                plate_number=plate_number,
+                start_date=start_date,
+                end_date=end_date
+            )
+            
             return {
-                'success': False,
-                'message': f'获取停车场状态失败: {str(e)}'
+                'success': True,
+                'records': [record.to_dict() for record in records],
+                'pagination': {
+                    'page': page,
+                    'per_page': per_page,
+                    'total': total,
+                    'pages': (total + per_page - 1) // per_page
+                }
             }
+        except Exception as e:
+            raise DatabaseError(f'获取停车记录失败: {str(e)}')
+    
+    def get_statistics(self, start_date=None, end_date=None):
+        """获取停车统计信息 - 优化版本"""
+        try:
+            stats = ParkingRecord.get_parking_statistics(start_date=start_date, end_date=end_date)
+            
+            return {
+                'success': True,
+                'statistics': stats
+            }
+        except Exception as e:
+            raise DatabaseError(f'获取统计信息失败: {str(e)}')

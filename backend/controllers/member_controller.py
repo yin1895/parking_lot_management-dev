@@ -1,12 +1,14 @@
 from flask import Blueprint, request, jsonify
 from backend.models.member import Member
 from backend.models import db_session
+from backend.middleware.auth_middleware import token_required, admin_required
 
 member_bp = Blueprint('members', __name__)
 
 @member_bp.route('', methods=['GET'])
-def get_members():
-    """获取所有会员"""
+@token_required
+def get_members(current_user):
+    """获取所有会员 - 需要认证"""
     try:
         members = db_session.query(Member).all()
         result = {
@@ -21,8 +23,9 @@ def get_members():
         }), 500
 
 @member_bp.route('', methods=['POST'])
-def create_member():
-    """添加新会员"""
+@admin_required
+def create_member(current_user):
+    """添加新会员 - 需要管理员权限"""
     try:
         data = request.json
         # 验证必要字段
@@ -64,8 +67,9 @@ def create_member():
         }), 500
 
 @member_bp.route('/<int:member_id>', methods=['GET'])
-def get_member(member_id):
-    """获取特定会员"""
+@token_required
+def get_member(current_user, member_id):
+    """获取特定会员 - 需要认证"""
     try:
         member = db_session.query(Member).get(member_id)
         if not member:
@@ -85,8 +89,9 @@ def get_member(member_id):
         }), 500
 
 @member_bp.route('/<int:member_id>', methods=['PUT'])
-def update_member(member_id):
-    """更新会员信息"""
+@admin_required
+def update_member(current_user, member_id):
+    """更新会员信息 - 需要管理员权限"""
     try:
         data = request.json
         member = db_session.query(Member).get(member_id)
@@ -120,8 +125,9 @@ def update_member(member_id):
         }), 500
 
 @member_bp.route('/<int:member_id>', methods=['DELETE'])
-def delete_member(member_id):
-    """删除会员"""
+@admin_required
+def delete_member(current_user, member_id):
+    """删除会员 - 需要管理员权限"""
     try:
         member = db_session.query(Member).get(member_id)
         
