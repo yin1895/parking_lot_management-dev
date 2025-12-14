@@ -1,6 +1,5 @@
 from sqlalchemy import Column, String, Integer
-from backend.models.base import BaseModel
-from backend.models import db_session
+from .base import BaseModel
 
 class Member(BaseModel):
     __tablename__ = 'members'
@@ -13,7 +12,10 @@ class Member(BaseModel):
     @staticmethod
     def get_by_plate(plate_number):
         """通过车牌号获取会员"""
-        return db_session.query(Member).filter_by(plate_number=plate_number).first()
+        from . import db_session
+        if db_session:
+            return db_session.query(Member).filter_by(plate_number=plate_number).first()
+        return None
         
     def to_dict(self):
         """将模型转换为字典"""
@@ -23,5 +25,5 @@ class Member(BaseModel):
             'plate_number': self.plate_number,
             'phone': self.phone,
             'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at is not None else None
         }
