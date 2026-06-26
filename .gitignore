@@ -18,6 +18,12 @@ node_modules/
 /frontend/build
 .env.local
 .env.development.local
+
+# Tests & coverage
+.pytest_cache/
+coverage_html/
+coverage.xml
+.coverage
 .env.test.local
 .env.production.local
 

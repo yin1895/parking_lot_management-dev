@@ -1,0 +1,21 @@
+[run]
+source = backend
+omit =
+    */tests/*
+    backend/recognition/models/*
+    backend/__init__.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if __name__ == .__main__.:
+    raise NotImplementedError
+    if False:
+    if __name__ == "__main__":
+
+show_missing = True
+fail_under = 50
+
+[html]
+directory = coverage_html

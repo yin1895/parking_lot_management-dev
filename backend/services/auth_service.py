@@ -28,7 +28,7 @@ class AuthService:
         """生成 access + refresh 令牌对"""
         now = datetime.utcnow()
         access_payload = {
-            "sub": user_info["id"],
+            "sub": str(user_info["id"]),
             "username": user_info["username"],
             "role": user_info["role"],
             "type": "access",
@@ -36,7 +36,7 @@ class AuthService:
             "exp": now + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES),
         }
         refresh_payload = {
-            "sub": user_info["id"],
+            "sub": str(user_info["id"]),
             "type": "refresh",
             "iat": now,
             "exp": now + timedelta(seconds=Config.JWT_REFRESH_TOKEN_EXPIRES),
@@ -67,7 +67,7 @@ class AuthService:
         payload = AuthService.verify_token(refresh_token)
         if not payload or payload.get("type") != "refresh":
             return None
-        user_info = {"id": payload["sub"]}
+        user_info = {"id": int(payload["sub"])}
         user = db.session.query(User).get(user_info["id"])
         if not user:
             return None
