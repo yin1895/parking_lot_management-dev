@@ -1,122 +1,33 @@
 <template>
   <div class="dashboard">
-    <!-- 确保容器尺寸稳定 -->
-    <div class="dashboard-container">
-      <el-row :gutter="20">
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <template #header>
-              <div class="card-header">
-                <h3>当前车位</h3>
-              </div>
-            </template>
-            <div class="stat-value">
-              {{ parkingStatus ? parkingStatus.available_spaces : '加载中...' }}
-              <small>可用</small>
-            </div>
-            <el-progress 
-              :percentage="parkingStatus ? Math.round((parkingStatus.occupied_spaces / parkingStatus.total_spaces) * 100) : 0"
-              :format="() => ''" 
-              :color="getOccupancyColor"
-            />
-            <div class="stat-label">
-              共 {{ parkingStatus ? parkingStatus.total_spaces : '-' }} 个车位，
-              已用 {{ parkingStatus ? parkingStatus.occupied_spaces : '-' }} 个
-            </div>
-          </el-card>
-        </el-col>
-        
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <template #header>
-              <div class="card-header">
-                <h3>今日入场</h3>
-              </div>
-            </template>
-            <div class="stat-value">
-              {{ todayStats.entries || 0 }}
-              <small>车辆</small>
-            </div>
-            <el-progress 
-              :percentage="Math.min(100, (todayStats.entries / 50) * 100)" 
-              :format="() => ''" 
-              color="#67C23A"
-            />
-          </el-card>
-        </el-col>
-        
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <template #header>
-              <div class="card-header">
-                <h3>今日出场</h3>
-              </div>
-            </template>
-            <div class="stat-value">
-              {{ todayStats.exits || 0 }}
-              <small>车辆</small>
-            </div>
-            <el-progress 
-              :percentage="Math.min(100, (todayStats.exits / 50) * 100)" 
-              :format="() => ''" 
-              color="#E6A23C"
-            />
-          </el-card>
-        </el-col>
-        
-        <el-col :span="6">
-          <el-card shadow="hover" class="stat-card">
-            <template #header>
-              <div class="card-header">
-                <h3>今日收入</h3>
-              </div>
-            </template>
-            <div class="stat-value">
-              {{ todayStats.income.toFixed(2) }}
-              <small>元</small>
-            </div>
-            <el-progress 
-              :percentage="Math.min(100, (todayStats.income / 1000) * 100)" 
-              :format="() => ''" 
-              color="#409EFF"
-            />
-          </el-card>
-        </el-col>
-      </el-row>
+    <div class="stats-grid">
+      <div class="stat-block" v-for="(stat, idx) in stats" :key="idx">
+        <span class="stat-label">{{ stat.label }}</span>
+        <span class="stat-value">{{ stat.value }}</span>
+        <div class="stat-bar">
+          <div class="stat-bar-fill" :style="{ width: stat.percent + '%' }"></div>
+        </div>
+        <span class="stat-footnote">{{ stat.footnote }}</span>
+      </div>
     </div>
-    
-    <!-- 刷新按钮 -->
-    <div class="refresh-action">
-      <el-button 
-        type="primary" 
-        size="small" 
-        :icon="Refresh"
-        :loading="isLoading" 
-        @click="loadData"
-      >
-        刷新数据
-      </el-button>
-      <span class="last-update" v-if="lastUpdate">
-        上次更新: {{ lastUpdate }}
-      </span>
+
+    <div class="dashboard-actions">
+      <button class="text-link" @click="loadData" :disabled="isLoading">
+        {{ isLoading ? '刷新中...' : '刷新数据' }}
+      </button>
+      <span class="last-update" v-if="lastUpdate">上次更新: {{ lastUpdate }}</span>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import parkingApi from '@/api/parkingApi'
-import { ElMessage } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
 import { throttle } from '@/utils/debounce'
 
 export default {
   name: 'DashboardComponent',
-  components: {
-    Refresh
-  },
   props: {
-    // 添加prop允许父组件触发刷新
     refreshTrigger: {
       type: Number,
       default: 0
@@ -133,209 +44,190 @@ export default {
     })
     const isLoading = ref(false)
     const lastUpdate = ref('')
-    const loadError = ref(false)
-    
-    // 添加数据版本监控，确保只显示最新数据
     const dataTimestamp = ref(0)
-    
-    const getOccupancyColor = computed(() => {
-      if (!parkingStatus.value) return '#409EFF'
-      
-      const rate = parkingStatus.value.occupied_spaces / parkingStatus.value.total_spaces
-      if (rate < 0.7) return '#67C23A'  // 绿色 - 宽松
-      if (rate < 0.9) return '#E6A23C'  // 橙色 - 繁忙
-      return '#F56C6C'  // 红色 - 几乎满了
+
+    const getOccupancyRate = computed(() => {
+      if (!parkingStatus.value) return 0
+      return (parkingStatus.value.occupied_spaces / parkingStatus.value.total_spaces) * 100
     })
-    
-    const formatDateTime = () => {
-      const now = new Date()
-      return now.toLocaleTimeString()
-    }
-    
-    const loadData = async (forceFresh = false) => {
-      if (isLoading.value && !forceFresh) return
-      
+
+    const stats = computed(() => [
+      { label: '当前车位', value: parkingStatus.value ? `${parkingStatus.value.available_spaces} / ${parkingStatus.value.total_spaces}` : '---', percent: parkingStatus.value ? getOccupancyRate.value : 0, footnote: `已用 ${parkingStatus.value ? parkingStatus.value.occupied_spaces : '-'} 个` },
+      { label: '今日入场', value: String(todayStats.value.entries || 0), percent: Math.min(100, (todayStats.value.entries / 50) * 100), footnote: '辆' },
+      { label: '今日出场', value: String(todayStats.value.exits || 0), percent: Math.min(100, (todayStats.value.exits / 50) * 100), footnote: '辆' },
+      { label: '今日收入', value: `¥${(todayStats.value.income || 0).toFixed(2)}`, percent: Math.min(100, (todayStats.value.income / 1000) * 100), footnote: '元' }
+    ])
+
+    const loadData = async () => {
+      if (isLoading.value) return
       isLoading.value = true
-      loadError.value = false
-      
+
       try {
-        // 加载停车场状态
         const statusRes = await parkingApi.getParkingStatus()
-        if (statusRes.success) {
-          parkingStatus.value = statusRes
-        } else {
-          console.warn('获取停车场状态失败:', statusRes.message)
-        }
-        
-        // 加载今日统计数据（从后端API获取）
+        if (statusRes.success) parkingStatus.value = statusRes
+
         const statsRes = await parkingApi.getTodayStats()
-        if (statsRes.success) {
-          // 检查是否是更新的数据
-          if (!statsRes.stats.timestamp || statsRes.stats.timestamp >= dataTimestamp.value) {
-            // 更新数据时间戳
-            dataTimestamp.value = statsRes.stats.timestamp || Date.now()
-            
-            // 更新统计数据
+        if (statsRes.success && statsRes.stats) {
+          const ts = statsRes.stats.timestamp || Date.now()
+          if (ts >= dataTimestamp.value) {
+            dataTimestamp.value = ts
             todayStats.value = {
               entries: typeof statsRes.stats.entries === 'number' ? statsRes.stats.entries : 0,
               exits: typeof statsRes.stats.exits === 'number' ? statsRes.stats.exits : 0,
               income: typeof statsRes.stats.income === 'number' ? statsRes.stats.income : 0,
-              timestamp: dataTimestamp.value
+              timestamp: ts
             }
-            
-            console.log('仪表盘数据已更新:', todayStats.value)
-          } else {
-            console.warn('收到过期的统计数据，忽略更新')
           }
-        } else {
-          console.error('获取统计数据失败:', statsRes.message)
-          loadError.value = true
         }
-        
-        lastUpdate.value = formatDateTime()
-      } catch (error) {
-        console.error('加载数据失败:', error)
-        ElMessage.error('加载数据失败: ' + (error.message || '未知错误'))
-        loadError.value = true
+        lastUpdate.value = new Date().toLocaleTimeString()
+      } catch (e) {
+        console.error(e)
       } finally {
         isLoading.value = false
-        emit('load-complete', !loadError.value)
+        emit('load-complete', true)
       }
     }
-    
-    // 使用节流函数优化loadData调用
-    const throttledLoadData = throttle(loadData, 5000, true);
-    
-    // 监听父组件的刷新触发
-    watch(() => props.refreshTrigger, () => {
-      console.log('收到刷新触发信号，重新加载数据')
-      throttledLoadData(true)
-    })
-    
-    // 建立定时刷新
-    let refreshInterval = null
-    
+
+    const throttledLoad = throttle(loadData, 5000, true)
+
+    watch(() => props.refreshTrigger, () => throttledLoad(true))
+
+    let interval
     onMounted(() => {
-      throttledLoadData()
-      
-      // 每30秒自动刷新一次数据
-      refreshInterval = setInterval(() => {
-        throttledLoadData()
-      }, 30000)
+      throttledLoad()
+      interval = setInterval(() => throttledLoad(), 30000)
     })
-    
-    // 组件卸载时清除定时器
-    onBeforeUnmount(() => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval)
-      }
-    })
-    
-    return {
-      parkingStatus,
-      todayStats,
-      isLoading,
-      lastUpdate,
-      getOccupancyColor,
-      loadData: throttledLoadData,
-      Refresh
-    }
+    onBeforeUnmount(() => { if (interval) clearInterval(interval) })
+
+    return { stats, isLoading, lastUpdate, loadData: throttledLoad }
   }
 }
 </script>
 
 <style scoped>
 .dashboard {
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
-/* 添加固定尺寸容器减少布局计算 */
-.dashboard-container {
-  min-height: 200px;
+/* magazine-style stat grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 48px;
+  padding: 36px 0;
   position: relative;
 }
 
-/* 确保卡片有固定高度，减少大小变化 */
-.stat-card {
-  height: 180px;
-  transition: transform 0.3s;
-  will-change: transform;
+.stats-grid::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(196, 136, 60, 0.25) 15%, rgba(196, 136, 60, 0.25) 50%, rgba(196, 136, 60, 0.1) 85%, transparent 100%);
 }
 
-/* 使用transform替代可能触发布局重计算的属性 */
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-
-.card-header {
+.stat-block {
+  text-align: left;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 28px;
+  position: relative;
 }
 
-.stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  margin: 10px 0;
-}
-
-.stat-value small {
-  font-size: 14px;
-  font-weight: normal;
-  opacity: 0.7;
-  margin-left: 5px;
+.stat-block::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 2px;
+  background: var(--el-color-primary);
+  box-shadow: 0 0 10px rgba(196, 136, 60, 0.4);
 }
 
 .stat-label {
-  font-size: 12px;
-  color: #909399;
+  font-size: 10px;
+  font-family: var(--font-family-inter);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+}
+
+.stat-value {
+  font-family: var(--font-family-mono);
+  font-weight: 700;
+  font-size: 40px;
+  letter-spacing: -0.04em;
+  color: var(--el-color-primary);
+  line-height: 1.05;
+  text-shadow: 0 0 20px rgba(196, 136, 60, 0.12);
+}
+
+.stat-bar {
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 8px 0 2px;
+  width: 100%;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background: var(--el-color-primary);
+  box-shadow: 0 0 6px rgba(196, 136, 60, 0.3);
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stat-footnote {
+  font-size: 11px;
+  color: var(--el-text-color-placeholder);
+}
+
+/* actions row */
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
   margin-top: 8px;
 }
 
-.refresh-action {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 15px;
+.text-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-family-inter);
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.text-link:hover {
+  color: var(--el-color-primary);
+  text-shadow: 0 0 8px rgba(196, 136, 60, 0.3);
+}
+
+.text-link:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .last-update {
-  margin-left: 10px;
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-placeholder);
 }
 
-/* 适配暗色主题 */
-[data-theme="dark"] .stat-card {
-  background-color: var(--card-bg);
-  border-color: var(--border-color);
-}
-
-[data-theme="dark"] .stat-label {
-  color: #b0b3b8;
-}
-
-[data-theme="dark"] .last-update {
-  color: #b0b3b8;
-}
-
-/* 添加响应式适配，减少动态尺寸变化 */
+/* responsive */
 @media (max-width: 768px) {
-  .el-row {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
   }
-  
-  .el-col {
-    padding-left: 5px !important;
-    padding-right: 5px !important;
-  }
-  
-  .stat-card {
-    height: auto;
-    min-height: 150px;
-    margin-bottom: 10px;
+
+  .stat-value {
+    font-size: 24px;
   }
 }
 </style>

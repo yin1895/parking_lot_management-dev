@@ -6,7 +6,7 @@ export default createStore({
     isAuthenticated: false,
     user: null,
     token: localStorage.getItem('token') || null,
-    theme: localStorage.getItem('theme') || 'light' // 添加主题状态
+    theme: localStorage.getItem('theme') || 'dark' // 添加主题状态
   },
   getters: {
     isAuthenticated: state => state.isAuthenticated,

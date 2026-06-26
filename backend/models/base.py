@@ -1,10 +1,8 @@
-from sqlalchemy.ext.declarative import declarative_base
+from backend.models import db
 from sqlalchemy import Column, Integer, DateTime
 from datetime import datetime
 
-Base = declarative_base()
-
-class BaseModel(Base):
+class BaseModel(db.Model):
     __abstract__ = True
     
     id = Column(Integer, primary_key=True)

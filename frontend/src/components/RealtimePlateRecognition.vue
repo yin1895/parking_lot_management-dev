@@ -329,7 +329,7 @@ export default {
 
 .video-container {
   border: 1px solid #dcdfe6;
-  border-radius: 4px;
+  
   overflow: hidden;
   width: 100%;
   height: 0;

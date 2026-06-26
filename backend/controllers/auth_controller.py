@@ -1,15 +1,18 @@
 from flask import Blueprint, request, jsonify
 from backend.models.user import User
-from backend.models import db_session
+from backend.models import db
 # 替换为 pbkdf2_sha256
 from passlib.hash import pbkdf2_sha256
 import datetime
 import jwt
 from backend.config.config import Config
 
+from backend.utils.limiter import limiter
+
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['POST'])
+@limiter.limit("5 per minute")
 def login():
     """用户登录"""
     try:
@@ -24,7 +27,7 @@ def login():
             }), 400
             
         # 查询用户
-        user = db_session.query(User).filter_by(username=username).first()
+        user = db.session.query(User).filter_by(username=username).first()
         
         # 验证密码 - 使用 pbkdf2_sha256
         if not user or not pbkdf2_sha256.verify(password, user.password):
@@ -74,7 +77,7 @@ def register():
             }), 400
             
         # 检查用户名是否已存在
-        existing = db_session.query(User).filter_by(username=username).first()
+        existing = db.session.query(User).filter_by(username=username).first()
         if existing:
             return jsonify({
                 'success': False,
@@ -90,8 +93,8 @@ def register():
             role='user'  # 默认为普通用户
         )
         
-        db_session.add(user)
-        db_session.commit()
+        db.session.add(user)
+        db.session.commit()
         
         return jsonify({
             'success': True,
@@ -103,7 +106,7 @@ def register():
             }
         }), 201
     except Exception as e:
-        db_session.rollback()
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': f'注册失败: {str(e)}'

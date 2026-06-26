@@ -12,8 +12,8 @@ class User(BaseModel):
     @staticmethod
     def create_default_admin():
         """创建默认管理员用户"""
-        from backend.models import db_session
-        if not db_session.query(User).filter_by(username='admin').first():
-            admin = User(username='admin', password='admin', role='admin')
-            db_session.add(admin)
-            db_session.commit()
+        from backend.models import db
+        if not db.session.query(User).filter_by(username='admin').first():
+            admin = User(username='admin', password=pbkdf2_sha256.hash('admin'), role='admin')
+            db.session.add(admin)
+            db.session.commit()

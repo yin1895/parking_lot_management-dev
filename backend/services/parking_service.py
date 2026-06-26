@@ -2,7 +2,8 @@ from datetime import datetime
 from backend.models.parking_record import ParkingRecord
 from backend.models.member import Member
 from backend.services.fee_calculator import FeeCalculator
-from backend.models import db_session
+from backend.config.config import Config
+from backend.models import db
 
 class ParkingService:
     def __init__(self):
@@ -28,8 +29,8 @@ class ParkingService:
                 entry_time=entry_time
             )
             
-            db_session.add(record)
-            db_session.commit()
+            db.session.add(record)
+            db.session.commit()
             
             return {
                 'success': True,
@@ -37,7 +38,7 @@ class ParkingService:
                 'record': record.to_dict()
             }
         except Exception as e:
-            db_session.rollback()
+            db.session.rollback()
             return {
                 'success': False,
                 'message': f'记录入场失败: {str(e)}'
@@ -79,6 +80,7 @@ class ParkingService:
                 'fee_details': fee_details
             }
         except Exception as e:
+            db.session.rollback()
             return {
                 'success': False,
                 'message': f'记录出场失败: {str(e)}'
@@ -90,7 +92,7 @@ class ParkingService:
             # 获取当前在场车辆数量
             active_vehicles = ParkingRecord.count_active()
             # 假设总车位为100
-            total_spaces = 100
+            total_spaces = Config.PARKING_CAPACITY
             available_spaces = total_spaces - active_vehicles
             
             return {

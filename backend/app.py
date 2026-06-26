@@ -10,6 +10,7 @@ from backend.models import init_db, db
 from backend.controllers.parking_controller import parking_bp
 from backend.controllers.recognition_controller import recognition_bp
 from backend.utils.error_handler import register_error_handlers
+from backend.utils.limiter import limiter
 from backend.controllers.member_controller import member_bp
 from backend.controllers.record_controller import record_bp
 from backend.controllers.auth_controller import auth_bp
@@ -19,6 +20,7 @@ import logging
 app = Flask(__name__)
 # 为Docker环境配置更宽松的CORS策略
 CORS(app, resources={r"/api/*": {"origins": "*", "supports_credentials": True}})
+limiter.init_app(app)
 app.config.from_object(Config)
 
 # 配置日志

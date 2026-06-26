@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Float, DateTime
 from backend.models.base import BaseModel
-from backend.models import db_session
+from backend.models import db
 
 class ParkingRecord(BaseModel):
     __tablename__ = 'parking_records'
@@ -14,12 +14,12 @@ class ParkingRecord(BaseModel):
     @staticmethod
     def get_active_by_plate(plate_number):
         """获取当前在场的车辆记录"""
-        return db_session.query(ParkingRecord).filter_by(plate_number=plate_number, exit_time=None).first()
+        return db.session.query(ParkingRecord).filter_by(plate_number=plate_number, exit_time=None).first()
 
     @staticmethod
     def count_active():
         """统计当前在场车辆数量"""
-        return db_session.query(ParkingRecord).filter_by(exit_time=None).count()
+        return db.session.query(ParkingRecord).filter_by(exit_time=None).count()
         
     def to_dict(self):
         """将模型转换为字典"""
@@ -35,4 +35,4 @@ class ParkingRecord(BaseModel):
         
     def save(self):
         """保存更改到数据库"""
-        db_session.commit()
+        db.session.commit()

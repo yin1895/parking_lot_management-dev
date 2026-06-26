@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from backend.models.member import Member
-from backend.models import db_session
+from backend.models import db
 
 member_bp = Blueprint('members', __name__)
 
@@ -8,7 +8,7 @@ member_bp = Blueprint('members', __name__)
 def get_members():
     """获取所有会员"""
     try:
-        members = db_session.query(Member).all()
+        members = db.session.query(Member).all()
         result = {
             'success': True,
             'members': [member.to_dict() for member in members]
@@ -33,7 +33,7 @@ def create_member():
             }), 400
             
         # 检查车牌号是否已存在
-        existing = db_session.query(Member).filter_by(plate_number=data.get('plate_number')).first()
+        existing = db.session.query(Member).filter_by(plate_number=data.get('plate_number')).first()
         if existing:
             return jsonify({
                 'success': False,
@@ -48,8 +48,8 @@ def create_member():
             status=data.get('status', 'active')
         )
         
-        db_session.add(member)
-        db_session.commit()
+        db.session.add(member)
+        db.session.commit()
         
         return jsonify({
             'success': True,
@@ -57,7 +57,7 @@ def create_member():
             'member': member.to_dict()
         }), 201
     except Exception as e:
-        db_session.rollback()
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': f'添加会员失败: {str(e)}'
@@ -67,7 +67,7 @@ def create_member():
 def get_member(member_id):
     """获取特定会员"""
     try:
-        member = db_session.query(Member).get(member_id)
+        member = db.session.query(Member).get(member_id)
         if not member:
             return jsonify({
                 'success': False,
@@ -89,7 +89,7 @@ def update_member(member_id):
     """更新会员信息"""
     try:
         data = request.json
-        member = db_session.query(Member).get(member_id)
+        member = db.session.query(Member).get(member_id)
         
         if not member:
             return jsonify({
@@ -105,7 +105,7 @@ def update_member(member_id):
         if 'status' in data:
             member.status = data['status']
             
-        db_session.commit()
+        db.session.commit()
         
         return jsonify({
             'success': True,
@@ -113,7 +113,7 @@ def update_member(member_id):
             'member': member.to_dict()
         })
     except Exception as e:
-        db_session.rollback()
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': f'更新会员失败: {str(e)}'
@@ -123,7 +123,7 @@ def update_member(member_id):
 def delete_member(member_id):
     """删除会员"""
     try:
-        member = db_session.query(Member).get(member_id)
+        member = db.session.query(Member).get(member_id)
         
         if not member:
             return jsonify({
@@ -131,15 +131,15 @@ def delete_member(member_id):
                 'message': '会员不存在'
             }), 404
             
-        db_session.delete(member)
-        db_session.commit()
+        db.session.delete(member)
+        db.session.commit()
         
         return jsonify({
             'success': True,
             'message': '会员已删除'
         })
     except Exception as e:
-        db_session.rollback()
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': f'删除会员失败: {str(e)}'

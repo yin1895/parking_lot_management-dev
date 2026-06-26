@@ -1,26 +1,39 @@
 import os
 import onnxruntime as ort
+import logging
 
-# 获取项目根目录
+logger = logging.getLogger(__name__)
+
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# 更新权重文件路径
 WEIGHTS_DIR = os.path.join(ROOT_DIR, 'weights')
 DETECT_MODEL = os.path.join(WEIGHTS_DIR, 'plate_detect.onnx')
 RECOG_MODEL = os.path.join(WEIGHTS_DIR, 'plate_rec_color.onnx')
 
-def load_models():
-    """加载模型并返回会话"""
-    if not os.path.exists(DETECT_MODEL) or not os.path.exists(RECOG_MODEL):
-        raise FileNotFoundError(
-            f"权重文件未找到。请确保以下文件存在：\n"
-            f"1. {DETECT_MODEL}\n"
-            f"2. {RECOG_MODEL}"
-        )
-    
-    detect_session = ort.InferenceSession(DETECT_MODEL)
-    recog_session = ort.InferenceSession(RECOG_MODEL)
-    return detect_session, recog_session
+_sessions = None
 
-# 初始化模型会话
-detect_session, recog_session = load_models()
+def load_models():
+    """惰性加载 ONNX 模型，首次调用时初始化并缓存"""
+    global _sessions
+    if _sessions is not None:
+        return _sessions
+
+    if not os.path.exists(DETECT_MODEL):
+        raise FileNotFoundError(
+            f"车牌检测模型未找到: {DETECT_MODEL}"
+        )
+    if not os.path.exists(RECOG_MODEL):
+        raise FileNotFoundError(
+            f"车牌识别模型未找到: {RECOG_MODEL}"
+        )
+
+    detect = ort.InferenceSession(DETECT_MODEL)
+    recog = ort.InferenceSession(RECOG_MODEL)
+    _sessions = (detect, recog)
+    logger.info("车牌识别模型加载完成")
+    return _sessions
+
+def get_detect_session():
+    return load_models()[0]
+
+def get_recog_session():
+    return load_models()[1]

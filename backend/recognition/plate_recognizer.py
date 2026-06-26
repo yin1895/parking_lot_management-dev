@@ -3,7 +3,7 @@ import numpy as np
 import os
 import time
 import copy
-from .models import detect_session, recog_session
+from backend.recognition.models import load_models
 
 class PlateRecognizer:
     def __init__(self):
@@ -45,6 +45,7 @@ class PlateRecognizer:
 
     def detect_plate(self, image):
         """使用检测模型找到车牌"""
+        detect_session, recog_session = load_models()
         img, r, left, top = self.preprocess_image(image)
         y_onnx = detect_session.run([detect_session.get_outputs()[0].name], {detect_session.get_inputs()[0].name: img})[0]
         outputs = self.post_processing(y_onnx, r, left, top)
@@ -126,6 +127,7 @@ class PlateRecognizer:
 
     def recognize_text(self, plate_img):
         """识别车牌文字和颜色 """
+        detect_session, recog_session = load_models()
         img = self.rec_pre_processing(plate_img)
         y_onnx_plate, y_onnx_color = recog_session.run(
             [recog_session.get_outputs()[0].name, recog_session.get_outputs()[1].name], 

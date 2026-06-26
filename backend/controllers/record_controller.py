@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from backend.models.parking_record import ParkingRecord
-from backend.models import db_session
+from backend.models import db
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 record_bp = Blueprint('records', __name__)
 
@@ -17,7 +18,7 @@ def get_records():
         limit = int(request.args.get('limit', 100))
         
         # 构建查询
-        query = db_session.query(ParkingRecord)
+        query = db.session.query(ParkingRecord)
         
         if plate_number:
             query = query.filter(ParkingRecord.plate_number == plate_number)
@@ -54,7 +55,7 @@ def get_records():
 def get_record(record_id):
     """获取特定停车记录"""
     try:
-        record = db_session.query(ParkingRecord).get(record_id)
+        record = db.session.query(ParkingRecord).get(record_id)
         
         if not record:
             return jsonify({
@@ -77,27 +78,28 @@ def get_today_stats():
     """获取今日停车场统计数据"""
     try:
         # 使用UTC时区统一处理日期
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
         
         # 获取当前服务器时区的今天日期范围
-        local_tz = timezone(timedelta(hours=8))  # 假设服务器在东八区，根据实际情况调整
+        local_tz = ZoneInfo('Asia/Shanghai')
         now = datetime.now(local_tz)
         today_start = datetime(now.year, now.month, now.day, 0, 0, 0, tzinfo=local_tz)
         tomorrow_start = today_start + timedelta(days=1)
         
         # 将时区信息转换为UTC进行数据库查询
-        today_start_utc = today_start.astimezone(timezone.utc).replace(tzinfo=None)
-        tomorrow_start_utc = tomorrow_start.astimezone(timezone.utc).replace(tzinfo=None)
+        today_start_utc = today_start.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
+        tomorrow_start_utc = tomorrow_start.astimezone(ZoneInfo("UTC")).replace(tzinfo=None)
         
         # 查询今日入场记录数
-        entries_query = db_session.query(ParkingRecord).filter(
+        entries_query = db.session.query(ParkingRecord).filter(
             ParkingRecord.entry_time >= today_start_utc,
             ParkingRecord.entry_time < tomorrow_start_utc
         )
         entries_count = entries_query.count()
         
         # 查询今日出场记录数
-        exits_query = db_session.query(ParkingRecord).filter(
+        exits_query = db.session.query(ParkingRecord).filter(
             ParkingRecord.exit_time >= today_start_utc,
             ParkingRecord.exit_time < tomorrow_start_utc
         )

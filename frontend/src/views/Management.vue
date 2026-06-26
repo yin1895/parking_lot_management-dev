@@ -4,26 +4,23 @@
     <el-tabs v-model="activeTab">
       <el-tab-pane label="停车场状态" name="status">
         <div class="status-container" v-if="parkingStatus">
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-card>
-                <h3>总车位</h3>
-                <div class="status-value">{{ parkingStatus.total_spaces }}</div>
-              </el-card>
-            </el-col>
-            <el-col :span="8">
-              <el-card>
-                <h3>已占用</h3>
-                <div class="status-value">{{ parkingStatus.occupied_spaces }}</div>
-              </el-card>
-            </el-col>
-            <el-col :span="8">
-              <el-card>
-                <h3>可用车位</h3>
-                <div class="status-value">{{ parkingStatus.available_spaces }}</div>
-              </el-card>
-            </el-col>
-          </el-row>
+          <div class="status-stat-grid">
+            <div class="stat-block">
+              <span class="stat-label">总车位</span>
+              <span class="stat-value">{{ parkingStatus.total_spaces }}</span>
+              <div class="stat-bar"></div>
+            </div>
+            <div class="stat-block">
+              <span class="stat-label">已占用</span>
+              <span class="stat-value">{{ parkingStatus.occupied_spaces }}</span>
+              <div class="stat-bar"></div>
+            </div>
+            <div class="stat-block">
+              <span class="stat-label">可用车位</span>
+              <span class="stat-value">{{ parkingStatus.available_spaces }}</span>
+              <div class="stat-bar"></div>
+            </div>
+          </div>
           <div class="refresh-button">
             <el-button type="primary" @click="loadParkingStatus">刷新数据</el-button>
           </div>
@@ -437,9 +434,12 @@ export default {
   margin-top: 20px;
 }
 .status-value {
-  font-size: 24px;
-  font-weight: bold;
-  margin-top: 10px;
+  font-family: var(--font-family-inter);
+  font-weight: 700;
+  font-size: 36px;
+  letter-spacing: -0.03em;
+  color: var(--el-color-primary);
+  line-height: 1.1;
 }
 .refresh-button {
   margin-top: 20px;
@@ -466,5 +466,58 @@ export default {
 }
 .record-detail {
   padding: 10px 0;
+}
+
+.status-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 48px;
+  margin-bottom: 32px;
+  position: relative;
+  padding-top: 24px;
+}
+
+.status-stat-grid::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(196, 136, 60, 0.2) 15%, rgba(196, 136, 60, 0.2) 50%, rgba(196, 136, 60, 0.08) 85%, transparent 100%);
+}
+
+.stat-block {
+  text-align: left;
+  padding-top: 20px;
+  position: relative;
+}
+
+.stat-block::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 2px;
+  background: var(--el-color-primary);
+  box-shadow: 0 0 8px rgba(196, 136, 60, 0.35);
+}
+
+.stat-label {
+  font-size: 10px;
+  font-family: var(--font-family-inter);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.stat-bar {
+  height: 2px;
+  background: var(--el-color-primary);
+  box-shadow: 0 0 6px rgba(196, 136, 60, 0.3);
+  width: 48px;
+  margin-top: 8px;
 }
 </style>

@@ -117,7 +117,7 @@ export default {
   width: 178px;
   height: 178px;
   border: 1px dashed #d9d9d9;
-  border-radius: 6px;
+  
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -146,7 +146,7 @@ export default {
   margin-top: 20px;
   padding: 15px;
   border: 1px solid #ebeef5;
-  border-radius: 4px;
+  
 }
 .use-result {
   margin-top: 10px;
