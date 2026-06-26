@@ -2,24 +2,30 @@ import cv2
 import numpy as np
 import os
 import time
+import logging
 import copy
-from backend.recognition.models import load_models
+from backend.recognition.models import get_detect_session, get_recog_session, load_models
+
+logger = logging.getLogger(__name__)
 
 class PlateRecognizer:
     def __init__(self):
-        # 添加防抖动参数
         self.last_recognition_time = 0
-        self.recognition_cooldown = 2  # 两次识别间的冷却时间(秒)
+        self.recognition_cooldown = 2
         self.last_recognized_plate = None
         self.confidence_threshold = 0.5
-        
-        # 移植的参数
         self.plate_color_list = ['黑色', '蓝色', '绿色', '白色', '黄色']
         self.plateName = r"#京沪津渝冀晋蒙辽吉黑苏浙皖闽赣鲁豫鄂湘粤桂琼川贵云藏陕甘青宁新学警港澳挂使领民航危0123456789ABCDEFGHJKLMNPQRSTUVWXYZ险品"
-        self.mean_value, self.std_value = (0.588, 0.193)  # 识别模型均值标准差
+        self.mean_value, self.std_value = (0.588, 0.193)
+
+    def is_ready(self) -> bool:
+        """检查模型是否可用"""
+        try:
+            return load_models() is not None
+        except Exception:
+            return False
 
     def _load_char_dict(self):
-        # 完整的字符字典
         return {i: char for i, char in enumerate(self.plateName)}
 
     def my_letter_box(self, img, size=(640, 640)):
@@ -45,7 +51,9 @@ class PlateRecognizer:
 
     def detect_plate(self, image):
         """使用检测模型找到车牌"""
-        detect_session, recog_session = load_models()
+        detect_session = get_detect_session()
+        if detect_session is None:
+            raise RuntimeError("检测模型未加载")
         img, r, left, top = self.preprocess_image(image)
         y_onnx = detect_session.run([detect_session.get_outputs()[0].name], {detect_session.get_inputs()[0].name: img})[0]
         outputs = self.post_processing(y_onnx, r, left, top)
@@ -126,8 +134,10 @@ class PlateRecognizer:
         return plate
 
     def recognize_text(self, plate_img):
-        """识别车牌文字和颜色 """
-        detect_session, recog_session = load_models()
+        """识别车牌文字和颜色"""
+        _, recog_session = load_models()
+        if recog_session is None:
+            raise RuntimeError("识别模型未加载")
         img = self.rec_pre_processing(plate_img)
         y_onnx_plate, y_onnx_color = recog_session.run(
             [recog_session.get_outputs()[0].name, recog_session.get_outputs()[1].name], 
@@ -149,6 +159,7 @@ class PlateRecognizer:
 
     def process_image(self, img_path):
         """处理图像文件并识别车牌"""
+        logger.debug(f"识别图像: {img_path}")
         image = cv2.imread(img_path)
         if image is None:
             return None, None, "无法读取图片"
@@ -170,33 +181,29 @@ class PlateRecognizer:
     def process_frame(self, frame_data):
         """处理前端发送的视频帧并识别车牌"""
         try:
-            # 检查冷却时间，防止过于频繁的识别请求
             current_time = time.time()
             if current_time - self.last_recognition_time < self.recognition_cooldown:
                 return None, None, "识别冷却中，请稍后"
             
-            # 将Base64数据转换为图像
             import base64
-            jpg_as_np = np.frombuffer(base64.b64decode(frame_data.split(',')[1]), dtype=np.uint8)
+            encoded = frame_data.split(",")[1] if "," in frame_data else frame_data
+            jpg_as_np = np.frombuffer(base64.b64decode(encoded), dtype=np.uint8)
             image = cv2.imdecode(jpg_as_np, cv2.IMREAD_COLOR)
-            
             if image is None:
                 return None, None, "无法解析图像数据"
             
-            # 使用移植的方法检测车牌
             outputs = self.detect_plate(image)
             if len(outputs) == 0:
                 return None, None, "未检测到车牌"
             
-            # 获取最大的车牌区域
             box = outputs[0][:4].astype(int)
             plate_img = image[box[1]:box[3], box[0]:box[2]]
             plate_text, plate_color = self.recognize_text(plate_img)
-            
-            # 更新最后识别时间
+
             self.last_recognition_time = current_time
             self.last_recognized_plate = plate_text
-            
+            logger.info(f"帧识别结果: {plate_text} ({plate_color})")
             return plate_text, plate_color, None
         except Exception as e:
+            logger.error(f"帧识别异常: {e}", exc_info=True)
             return None, None, str(e)

@@ -6,13 +6,15 @@ export default createStore({
     isAuthenticated: false,
     user: null,
     token: localStorage.getItem('token') || null,
-    theme: localStorage.getItem('theme') || 'dark' // 添加主题状态
+    refreshToken: localStorage.getItem('refresh_token') || null,
+    theme: localStorage.getItem('theme') || 'dark'
   },
   getters: {
     isAuthenticated: state => state.isAuthenticated,
     user: state => state.user,
     token: state => state.token,
-    theme: state => state.theme // 添加主题getter
+    refreshToken: state => state.refreshToken,
+    theme: state => state.theme
   },
   mutations: {
     setAuth(state, auth) {
@@ -29,6 +31,14 @@ export default createStore({
         localStorage.removeItem('token')
       }
     },
+    setRefreshToken(state, refreshToken) {
+      state.refreshToken = refreshToken
+      if (refreshToken) {
+        localStorage.setItem('refresh_token', refreshToken)
+      } else {
+        localStorage.removeItem('refresh_token')
+      }
+    },
     setTheme(state, theme) {
       state.theme = theme
       localStorage.setItem('theme', theme)
@@ -41,9 +51,11 @@ export default createStore({
         const result = await parkingApi.login(credentials.username, credentials.password)
         
         if (result.success) {
+          const data = result.data || result
           commit('setAuth', true)
-          commit('setUser', result.user)
-          commit('setToken', result.token)
+          commit('setUser', data.user)
+          commit('setToken', data.access_token)
+          commit('setRefreshToken', data.refresh_token)
           return { success: true }
         } else {
           return { success: false, message: result.message }
@@ -58,14 +70,12 @@ export default createStore({
       commit('setAuth', false)
       commit('setUser', null)
       commit('setToken', null)
+      commit('setRefreshToken', null)
     },
     
-    // 检查用户是否已登录（从localStorage恢复会话）
     checkAuth({ commit, state }) {
       if (state.token) {
-        // 如果有token，尝试恢复登录状态
         commit('setAuth', true)
-        // 这里可以添加验证token有效性的请求
       }
     },
     toggleTheme({ commit, state }) {
@@ -73,7 +83,6 @@ export default createStore({
       commit('setTheme', newTheme)
     },
     initTheme({ commit, state }) {
-      // 初始化主题
       document.documentElement.setAttribute('data-theme', state.theme)
     }
   }

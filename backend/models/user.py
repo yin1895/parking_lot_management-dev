@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer
+from passlib.hash import pbkdf2_sha256
 from backend.models.base import BaseModel
 
 class User(BaseModel):
